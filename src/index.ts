@@ -15,6 +15,7 @@ import { Awareness } from 'y-protocols/awareness';
 
 import { Toolbar } from '@jupyterlab/ui-components';
 
+import cursorLabelsPlugin from './cursor-labels';
 
 interface ICollaborator {
   name: string;
@@ -102,8 +103,7 @@ class DocumentCollaboratorsWidget extends Widget {
           }
         }
       }
-    }).catch(error => {
-      console.warn('Failed to connect to collaboration awareness:', error);
+    }).catch(() => {
       this._setupMockCollaborators();
     });
   }
@@ -528,22 +528,26 @@ class CollaboratorsExtension implements DocumentRegistry.IWidgetExtension<any, a
 /**
  * Initialization data for the jupyterlab-document-collaborators extension.
  */
-const plugin: JupyterFrontEndPlugin<void> = {
+const collaboratorsPlugin: JupyterFrontEndPlugin<void> = {
   id: 'jupyterlab-document-collaborators:plugin',
   description: 'A JupyterLab extension for showing collaborators at the top of a document',
   autoStart: true,
   requires: [IDocumentManager],
   activate: (app: JupyterFrontEnd, docManager: IDocumentManager) => {
-    console.log('JupyterLab extension jupyterlab-document-collaborators is activated!');
-    
     // Create the extension
     const extension = new CollaboratorsExtension();
     
     // Register the extension with the document registry for all document types
     app.docRegistry.addWidgetExtension('Notebook', extension);
-    
-    console.log('Document collaborators extension registered!');
   }
 };
 
-export default plugin;
+/**
+ * Export both plugins as an array
+ */
+const plugins: JupyterFrontEndPlugin<any>[] = [
+  collaboratorsPlugin,
+  cursorLabelsPlugin
+];
+
+export default plugins;

@@ -349,3 +349,75 @@
     transition: none !important;
   }
 }
+
+/* Persistent Cursor Labels Styles */
+.jp-PersistentCursorLabels-container {
+  position: fixed;
+  top: 0;
+  right: 0;
+  pointer-events: none;
+  z-index: 1000;
+}
+
+.jp-PersistentCursorLabels-label {
+  position: fixed;
+  z-index: 1001;
+  pointer-events: none;
+  display: block;
+  border-radius: 12px;
+  padding: 4px 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  font-size: 12px;
+  white-space: nowrap;
+  opacity: 0.9;
+  transition: all 0.2s ease;
+}
+
+.jp-PersistentCursorLabels-content {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.jp-PersistentCursorLabels-icon {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-weight: bold;
+  color: white;
+  line-height: 1;
+  font-family: var(--jp-ui-font-family);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.jp-PersistentCursorLabels-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.jp-PersistentCursorLabels-name {
+  color: white;
+  font-weight: 500;
+  font-family: var(--jp-ui-font-family);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* Dark theme adjustments for persistent cursor labels */
+[data-jp-theme-name="JupyterLab Dark"] .jp-PersistentCursorLabels-label {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+/* Reduced motion support for persistent cursor labels */
+@media (prefers-reduced-motion: reduce) {
+  .jp-PersistentCursorLabels-label {
+    transition: none !important;
+  }
+}
