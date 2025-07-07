@@ -184,6 +184,20 @@
   font-family: var(--jp-ui-font-family);
 }
 
+/* Avatar image styles for toolbar icons */
+.jp-DocumentCollaborators-userIcon-avatar {
+  padding: 0 !important;
+  overflow: hidden;
+}
+
+.jp-DocumentCollaborators-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
 /* Dark theme adjustments */
 .jp-DocumentCollaborators-userIcon[data-jp-theme-name="JupyterLab Dark"] {
   border-color: var(--jp-border-color1);
@@ -197,5 +211,141 @@
   
   .jp-DocumentCollaborators-userIcon:hover {
     transform: none !important;
+  }
+}
+
+/* Modal styles */
+.jp-DocumentCollaborators-modal {
+  position: fixed;
+  z-index: 1000;
+  background-color: var(--jp-layout-color1);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  padding: 0;
+  min-width: 200px;
+  max-width: 300px;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.jp-DocumentCollaborators-modal-visible {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.jp-DocumentCollaborators-modal-content {
+  padding: 12px;
+}
+
+.jp-DocumentCollaborators-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.jp-DocumentCollaborators-modal-userIcon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 2px solid var(--jp-border-color2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.jp-DocumentCollaborators-modal-userIcon-avatar {
+  padding: 0 !important;
+}
+
+.jp-DocumentCollaborators-modal-avatar {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.jp-DocumentCollaborators-modal-initials {
+  font-size: 12px;
+  font-weight: bold;
+  color: white;
+  line-height: 1;
+  font-family: var(--jp-ui-font-family);
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.jp-DocumentCollaborators-modal-userInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.jp-DocumentCollaborators-modal-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jp-ui-font-color1);
+  margin-bottom: 4px;
+  font-family: var(--jp-ui-font-family);
+}
+
+.jp-DocumentCollaborators-modal-email {
+  font-size: 12px;
+  color: var(--jp-ui-font-color2);
+  margin-bottom: 0;
+  font-family: var(--jp-ui-font-family);
+  word-break: break-word;
+}
+
+.jp-DocumentCollaborators-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--jp-ui-font-color1);
+  margin-bottom: 8px;
+  font-family: var(--jp-ui-font-family);
+  border-bottom: 1px solid var(--jp-border-color2);
+  padding-bottom: 6px;
+}
+
+.jp-DocumentCollaborators-modal-collaborator {
+  margin-bottom: 8px;
+  padding: 6px 0;
+}
+
+.jp-DocumentCollaborators-modal-collaborator:not(:last-child) {
+  border-bottom: 1px solid var(--jp-border-color3);
+}
+
+.jp-DocumentCollaborators-modal-collaborator .jp-DocumentCollaborators-modal-name {
+  margin-bottom: 2px;
+}
+
+.jp-DocumentCollaborators-modal-collaborator .jp-DocumentCollaborators-modal-email {
+  margin-bottom: 0;
+}
+
+/* Dark theme adjustments for modal */
+[data-jp-theme-name="JupyterLab Dark"] .jp-DocumentCollaborators-modal {
+  background-color: var(--jp-layout-color1);
+  border-color: var(--jp-border-color1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .jp-DocumentCollaborators-modal {
+    border-width: 2px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+}
+
+/* Reduced motion support for modal */
+@media (prefers-reduced-motion: reduce) {
+  .jp-DocumentCollaborators-modal {
+    transition: none !important;
   }
 }

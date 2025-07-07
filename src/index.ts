@@ -22,6 +22,7 @@ interface ICollaborator {
   email?: string;
   color: string;
   clientId: number;
+  avatar_url?: string;
 }
 
 /**
@@ -66,6 +67,8 @@ class DocumentCollaboratorsWidget extends Widget {
   private _maxVisibleCollaborators = 3;
   private _awareness: Awareness | null = null;
   private _sharedModel: any = null;
+  private _currentModal: HTMLDivElement | null = null;
+  private _hideModalTimeout: NodeJS.Timeout | null = null;
 
   constructor(context?: DocumentRegistry.IContext<any>) {
     super();
@@ -128,6 +131,7 @@ class DocumentCollaboratorsWidget extends Widget {
       const user = state.user || {};
       const name = user.name || user.displayName || `User ${clientId}`;
       const email = user.email || '';
+      const avatar_url = user.avatar_url || user.avatarUrl || '';
       const color = user.color || generateUserColor(name);
       const initials = generateInitials(name);
       
@@ -135,6 +139,7 @@ class DocumentCollaboratorsWidget extends Widget {
         name,
         initials,
         email,
+        avatar_url,
         color,
         clientId
       });
@@ -150,6 +155,7 @@ class DocumentCollaboratorsWidget extends Widget {
         name: 'Sarah Chen',
         initials: 'SC',
         email: 'sarah.chen@example.com',
+        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
         color: '#4CAF50',
         clientId: 1
       },
@@ -164,6 +170,7 @@ class DocumentCollaboratorsWidget extends Widget {
         name: 'Alice Smith',
         initials: 'AS',
         email: 'alice.smith@example.com',
+        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
         color: '#FF9800',
         clientId: 3
       }
@@ -209,29 +216,48 @@ class DocumentCollaboratorsWidget extends Widget {
     const userIcon = document.createElement('div');
     userIcon.className = `jp-DocumentCollaborators-userIcon position-${index}`;
     
-    // Set dynamic background color (can't be in CSS)
-    userIcon.style.backgroundColor = collaborator.color;
+    if (collaborator.avatar_url) {
+      // Use avatar image
+      userIcon.classList.add('jp-DocumentCollaborators-userIcon-avatar');
+      const avatarImage = document.createElement('img');
+      avatarImage.className = 'jp-DocumentCollaborators-avatar';
+      avatarImage.src = collaborator.avatar_url;
+      avatarImage.alt = `${collaborator.name} avatar`;
+      
+      // Handle image load errors by falling back to initials
+      avatarImage.addEventListener('error', () => {
+        userIcon.removeChild(avatarImage);
+        userIcon.classList.remove('jp-DocumentCollaborators-userIcon-avatar');
+        userIcon.style.backgroundColor = collaborator.color;
+        
+        const initialsElement = document.createElement('div');
+        initialsElement.className = 'jp-DocumentCollaborators-initials';
+        initialsElement.textContent = collaborator.initials;
+        userIcon.appendChild(initialsElement);
+      });
+      
+      userIcon.appendChild(avatarImage);
+    } else {
+      // Fall back to initials
+      userIcon.style.backgroundColor = collaborator.color;
+      
+      const initialsElement = document.createElement('div');
+      initialsElement.className = 'jp-DocumentCollaborators-initials';
+      initialsElement.textContent = collaborator.initials;
+      userIcon.appendChild(initialsElement);
+    }
     
-    // Add user initials
-    const initialsElement = document.createElement('div');
-    initialsElement.className = 'jp-DocumentCollaborators-initials';
-    initialsElement.textContent = collaborator.initials;
-    userIcon.appendChild(initialsElement);
-    
-    // Status indicator removed
-    
-    // Add hover effects with proper z-index management
-    userIcon.addEventListener('mouseenter', () => {
-      // z-index is handled by CSS :hover rule
+    // Add hover effects for modal display
+    userIcon.addEventListener('mouseenter', (event) => {
+      this._showCollaboratorModal(collaborator, event.target as HTMLElement);
     });
     
     userIcon.addEventListener('mouseleave', () => {
-      // Reset handled by CSS
+      this._scheduleHideModal();
     });
     
-    // Add click handler
-    userIcon.addEventListener('click', () => this._onCollaboratorClicked(collaborator));
-    userIcon.title = collaborator.name;
+    // Remove the default title since we're using a custom modal
+    userIcon.removeAttribute('title');
     
     return userIcon;
   }
@@ -246,23 +272,218 @@ class DocumentCollaboratorsWidget extends Widget {
     textElement.textContent = `+${remainingCount}`;
     moreIcon.appendChild(textElement);
     
-    // Add click handler
-    moreIcon.addEventListener('click', () => this._onMoreClicked());
-    moreIcon.title = `${remainingCount} more collaborator${remainingCount > 1 ? 's' : ''}`;
+    // Add hover effects for more icon modal
+    moreIcon.addEventListener('mouseenter', (event) => {
+      this._showMoreModal(event.target as HTMLElement);
+    });
+    
+    moreIcon.addEventListener('mouseleave', () => {
+      this._scheduleHideModal();
+    });
+    
+    // Remove the default title since we're using a custom modal
+    moreIcon.removeAttribute('title');
     
     return moreIcon;
   }
 
-  private _onCollaboratorClicked(collaborator: ICollaborator): void {
-    console.log('Collaborator clicked:', collaborator.name);
-    const emailInfo = collaborator.email ? `\nEmail: ${collaborator.email}` : '';
-    alert(`Collaborator: ${collaborator.name}${emailInfo}\nClient ID: ${collaborator.clientId}`);
+  private _showCollaboratorModal(collaborator: ICollaborator, targetElement: HTMLElement): void {
+    this._clearHideModalTimeout();
+    this._hideCurrentModal();
+    
+    const modal = document.createElement('div');
+    modal.className = 'jp-DocumentCollaborators-modal';
+    
+    // Create modal content
+    const content = document.createElement('div');
+    content.className = 'jp-DocumentCollaborators-modal-content';
+    
+    // Create header with user icon and info
+    const headerElement = document.createElement('div');
+    headerElement.className = 'jp-DocumentCollaborators-modal-header';
+    
+    // User icon
+    const userIconElement = document.createElement('div');
+    userIconElement.className = 'jp-DocumentCollaborators-modal-userIcon';
+    
+    if (collaborator.avatar_url) {
+      // Use avatar image
+      userIconElement.classList.add('jp-DocumentCollaborators-modal-userIcon-avatar');
+      const avatarImage = document.createElement('img');
+      avatarImage.className = 'jp-DocumentCollaborators-modal-avatar';
+      avatarImage.src = collaborator.avatar_url;
+      avatarImage.alt = `${collaborator.name} avatar`;
+      
+      // Handle image load errors by falling back to initials
+      avatarImage.addEventListener('error', () => {
+        userIconElement.removeChild(avatarImage);
+        userIconElement.classList.remove('jp-DocumentCollaborators-modal-userIcon-avatar');
+        userIconElement.style.backgroundColor = collaborator.color;
+        
+        const initialsElement = document.createElement('div');
+        initialsElement.className = 'jp-DocumentCollaborators-modal-initials';
+        initialsElement.textContent = collaborator.initials;
+        userIconElement.appendChild(initialsElement);
+      });
+      
+      userIconElement.appendChild(avatarImage);
+    } else {
+      // Fall back to initials
+      userIconElement.style.backgroundColor = collaborator.color;
+      
+      const initialsElement = document.createElement('div');
+      initialsElement.className = 'jp-DocumentCollaborators-modal-initials';
+      initialsElement.textContent = collaborator.initials;
+      userIconElement.appendChild(initialsElement);
+    }
+    
+    headerElement.appendChild(userIconElement);
+    
+    // User info container
+    const userInfoElement = document.createElement('div');
+    userInfoElement.className = 'jp-DocumentCollaborators-modal-userInfo';
+    
+    // User name
+    const nameElement = document.createElement('div');
+    nameElement.className = 'jp-DocumentCollaborators-modal-name';
+    nameElement.textContent = collaborator.name;
+    userInfoElement.appendChild(nameElement);
+    
+    // User email (if available)
+    if (collaborator.email) {
+      const emailElement = document.createElement('div');
+      emailElement.className = 'jp-DocumentCollaborators-modal-email';
+      emailElement.textContent = collaborator.email;
+      userInfoElement.appendChild(emailElement);
+    }
+    
+    headerElement.appendChild(userInfoElement);
+    content.appendChild(headerElement);
+    
+    modal.appendChild(content);
+    
+    // Add hover handlers to keep modal visible
+    modal.addEventListener('mouseenter', () => {
+      this._clearHideModalTimeout();
+    });
+    
+    modal.addEventListener('mouseleave', () => {
+      this._scheduleHideModal();
+    });
+    
+    // Position and show modal
+    this._positionAndShowModal(modal, targetElement);
   }
-
-  private _onMoreClicked(): void {
+  
+  private _showMoreModal(targetElement: HTMLElement): void {
+    this._clearHideModalTimeout();
+    this._hideCurrentModal();
+    
     const hiddenCollaborators = Array.from(this._collaborators.values()).slice(this._maxVisibleCollaborators);
-    const names = hiddenCollaborators.map(c => c.name).join('\n');
-    alert(`Additional Collaborators:\n\n${names}`);
+    
+    const modal = document.createElement('div');
+    modal.className = 'jp-DocumentCollaborators-modal jp-DocumentCollaborators-modal-more';
+    
+    // Create modal content
+    const content = document.createElement('div');
+    content.className = 'jp-DocumentCollaborators-modal-content';
+    
+    // Title
+    const titleElement = document.createElement('div');
+    titleElement.className = 'jp-DocumentCollaborators-modal-title';
+    titleElement.textContent = 'Additional Collaborators';
+    content.appendChild(titleElement);
+    
+    // List of hidden collaborators
+    hiddenCollaborators.forEach(collaborator => {
+      const collaboratorElement = document.createElement('div');
+      collaboratorElement.className = 'jp-DocumentCollaborators-modal-collaborator';
+      
+      const nameElement = document.createElement('div');
+      nameElement.className = 'jp-DocumentCollaborators-modal-name';
+      nameElement.textContent = collaborator.name;
+      collaboratorElement.appendChild(nameElement);
+      
+      if (collaborator.email) {
+        const emailElement = document.createElement('div');
+        emailElement.className = 'jp-DocumentCollaborators-modal-email';
+        emailElement.textContent = collaborator.email;
+        collaboratorElement.appendChild(emailElement);
+      }
+      
+      content.appendChild(collaboratorElement);
+    });
+    
+    modal.appendChild(content);
+    
+    // Add hover handlers to keep modal visible
+    modal.addEventListener('mouseenter', () => {
+      this._clearHideModalTimeout();
+    });
+    
+    modal.addEventListener('mouseleave', () => {
+      this._scheduleHideModal();
+    });
+    
+    // Position and show modal
+    this._positionAndShowModal(modal, targetElement);
+  }
+  
+  private _positionAndShowModal(modal: HTMLDivElement, targetElement: HTMLElement): void {
+    // Add modal to document body
+    document.body.appendChild(modal);
+    this._currentModal = modal;
+    
+    // Get target element position
+    const targetRect = targetElement.getBoundingClientRect();
+    const modalRect = modal.getBoundingClientRect();
+    
+    // Position modal above the target element
+    let left = targetRect.left + (targetRect.width / 2) - (modalRect.width / 2);
+    let top = targetRect.top - modalRect.height - 8; // 8px gap
+    
+    // Ensure modal stays within viewport
+    const padding = 8;
+    left = Math.max(padding, Math.min(left, window.innerWidth - modalRect.width - padding));
+    
+    // If modal would be cut off at the top, show it below the target
+    if (top < padding) {
+      top = targetRect.bottom + 8;
+    }
+    
+    modal.style.left = `${left}px`;
+    modal.style.top = `${top}px`;
+    
+    // Trigger animation
+    requestAnimationFrame(() => {
+      modal.classList.add('jp-DocumentCollaborators-modal-visible');
+    });
+  }
+  
+  private _scheduleHideModal(): void {
+    this._clearHideModalTimeout();
+    this._hideModalTimeout = setTimeout(() => {
+      this._hideCurrentModal();
+    }, 200); // Small delay to allow moving to modal
+  }
+  
+  private _clearHideModalTimeout(): void {
+    if (this._hideModalTimeout) {
+      clearTimeout(this._hideModalTimeout);
+      this._hideModalTimeout = null;
+    }
+  }
+  
+  private _hideCurrentModal(): void {
+    if (this._currentModal) {
+      this._currentModal.classList.remove('jp-DocumentCollaborators-modal-visible');
+      setTimeout(() => {
+        if (this._currentModal && this._currentModal.parentNode) {
+          this._currentModal.parentNode.removeChild(this._currentModal);
+        }
+        this._currentModal = null;
+      }, 200); // Match CSS transition duration
+    }
   }
 
   /**
@@ -272,6 +493,8 @@ class DocumentCollaboratorsWidget extends Widget {
     if (this._awareness) {
       this._awareness.off('change', this._onAwarenessChange.bind(this));
     }
+    this._clearHideModalTimeout();
+    this._hideCurrentModal();
     super.dispose();
   }
 }
