@@ -1,0 +1,201 @@
+/*
+    See the JupyterLab Developer Guide for useful CSS Patterns:
+
+    https://jupyterlab.readthedocs.io/en/stable/developer/css.html
+*/
+
+/* Document Collaborators User Icon Styles */
+.jp-DocumentCollaborators {
+  --collaborator-icon-size: 24px;
+  --collaborator-border-width: 2px;
+}
+
+.jp-DocumentCollaborators-userIcon {
+  /* Ensure consistent sizing */
+  min-width: var(--collaborator-icon-size);
+  min-height: var(--collaborator-icon-size);
+  box-sizing: border-box;
+}
+
+.jp-DocumentCollaborators-userIcon:hover {
+  /* Additional hover effects */
+  border-color: var(--jp-brand-color1, #2196F3);
+}
+
+.jp-DocumentCollaborators-userIcon:active {
+  /* Click feedback */
+  transform: scale(0.95) !important;
+}
+
+.jp-DocumentCollaborators-initials {
+  /* Ensure initials are perfectly centered */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+}
+
+.jp-DocumentCollaborators-status {
+  /* Status indicator styling */
+  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.jp-DocumentCollaborators-status.offline {
+  background-color: #9E9E9E !important;
+}
+
+.jp-DocumentCollaborators-status.away {
+  background-color: #FF9800 !important;
+}
+
+.jp-DocumentCollaborators-status.busy {
+  background-color: #F44336 !important;
+}
+
+/* Dark theme adjustments */
+.jp-DocumentCollaborators-userIcon[data-jp-theme-name="JupyterLab Dark"] {
+  border-color: var(--jp-border-color1);
+}
+
+/* Alternative icon styles for better accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .jp-DocumentCollaborators-userIcon {
+    transition: none !important;
+  }
+  
+  .jp-DocumentCollaborators-userIcon:hover {
+    transform: none !important;
+  }
+}
+
+/* Overlapping collaborators container */
+.jp-DocumentCollaborators {
+  /* Container layout */
+  display: flex;
+  align-items: center;
+  position: relative;
+  margin-right: 8px;
+  /* Ensure enough width for overlapping icons */
+  min-width: calc(var(--collaborator-icon-size) * 2);
+}
+
+/* Hide container when no collaborators */
+.jp-DocumentCollaborators.empty {
+  display: none;
+}
+
+/* Base user icon styles */
+.jp-DocumentCollaborators-userIcon {
+  /* Ensure consistent sizing */
+  min-width: var(--collaborator-icon-size);
+  min-height: var(--collaborator-icon-size);
+  width: var(--collaborator-icon-size);
+  height: var(--collaborator-icon-size);
+  box-sizing: border-box;
+  
+  /* Shape and appearance */
+  border-radius: 50%;
+  border: 2px solid var(--jp-border-color2);
+  cursor: pointer;
+  
+  /* Layout */
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  
+  /* Interaction */
+  user-select: none;
+  transition: all 0.2s ease;
+}
+
+/* Overlapping positioning classes */
+.jp-DocumentCollaborators-userIcon.position-0 {
+  left: 0px;
+  z-index: 10;
+}
+
+.jp-DocumentCollaborators-userIcon.position-1 {
+  left: -16px;
+  z-index: 9;
+}
+
+.jp-DocumentCollaborators-userIcon.position-2 {
+  left: -32px;
+  z-index: 8;
+}
+
+.jp-DocumentCollaborators-userIcon.position-3 {
+  left: -48px;
+  z-index: 7;
+}
+
+/* Hover effects */
+.jp-DocumentCollaborators-userIcon:hover {
+  /* Additional hover effects */
+  border-color: var(--jp-brand-color1, #2196F3);
+  transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+  z-index: 100 !important;
+}
+
+.jp-DocumentCollaborators-userIcon:active {
+  /* Click feedback */
+  transform: scale(0.95) !important;
+}
+
+/* User initials styling */
+.jp-DocumentCollaborators-initials {
+  /* Ensure initials are perfectly centered */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  
+  /* Typography */
+  font-size: 10px;
+  font-weight: bold;
+  color: white;
+  line-height: 1;
+  font-family: var(--jp-ui-font-family);
+}
+
+/* Status indicator styling removed */
+
+/* More icon specific styles */
+.jp-DocumentCollaborators-moreIcon {
+  background-color: #757575 !important;
+}
+
+.jp-DocumentCollaborators-moreIcon:hover {
+  background-color: #616161 !important;
+}
+
+/* More icon text styling */
+.jp-DocumentCollaborators-moreIcon .jp-DocumentCollaborators-moreText {
+  font-size: 8px;
+  font-weight: bold;
+  color: white;
+  line-height: 1;
+  font-family: var(--jp-ui-font-family);
+}
+
+/* Dark theme adjustments */
+.jp-DocumentCollaborators-userIcon[data-jp-theme-name="JupyterLab Dark"] {
+  border-color: var(--jp-border-color1);
+}
+
+/* Alternative icon styles for better accessibility */
+@media (prefers-reduced-motion: reduce) {
+  .jp-DocumentCollaborators-userIcon {
+    transition: none !important;
+  }
+  
+  .jp-DocumentCollaborators-userIcon:hover {
+    transform: none !important;
+  }
+}
