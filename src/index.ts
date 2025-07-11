@@ -17,17 +17,30 @@ import { Toolbar } from '@jupyterlab/ui-components';
 
 import cursorLabelsPlugin from './cursor-labels';
 
+/**
+ * Interface representing a document collaborator
+ */
 interface ICollaborator {
+  /** Display name of the collaborator */
   name: string;
+  /** Initials derived from the collaborator's name */
   initials: string;
+  /** Email address of the collaborator (optional) */
   email?: string;
+  /** Color associated with the collaborator */
   color: string;
+  /** Unique client ID for the collaborator */
   clientId: number;
+  /** Avatar URL for the collaborator (optional) */
   avatar_url?: string;
 }
 
 /**
- * Generate a consistent color for a user based on their name
+ * Generate a consistent color for a user based on their name.
+ * Uses a hash function to ensure the same name always gets the same color.
+ * 
+ * @param name - The user's name
+ * @returns A hex color string
  */
 function generateUserColor(name: string): string {
   const colors = [
@@ -47,7 +60,12 @@ function generateUserColor(name: string): string {
 }
 
 /**
- * Generate initials from a name
+ * Generate initials from a user's name.
+ * For single names, returns first 2 characters.
+ * For multiple names, returns first character of first and last name.
+ * 
+ * @param name - The user's full name
+ * @returns Initials as uppercase string
  */
 function generateInitials(name: string): string {
   if (!name) return '??';
@@ -61,30 +79,40 @@ function generateInitials(name: string): string {
 }
 
 /**
- * Lumino widget for displaying document collaborators
+ * Lumino widget for displaying document collaborators in the toolbar.
+ * Shows up to 3 collaborator avatars with an overflow indicator.
+ * Provides hover tooltips with collaborator information.
  */
 class DocumentCollaboratorsWidget extends Widget {
   private _collaborators: Map<number, ICollaborator> = new Map();
+  /** Maximum number of collaborator avatars to show before showing '+N more' */
   private _maxVisibleCollaborators = 3;
   private _awareness: Awareness | null = null;
   private _sharedModel: any = null;
   private _currentModal: HTMLDivElement | null = null;
   private _hideModalTimeout: NodeJS.Timeout | null = null;
 
+  /**
+   * Construct a new DocumentCollaboratorsWidget.
+   * 
+   * @param context - The document context to monitor for collaborators
+   */
   constructor(context?: DocumentRegistry.IContext<any>) {
     super();
     this.addClass('jp-DocumentCollaborators');
     
     if (context) {
       this._connectToAwareness(context);
-    } else {
-      // Fallback to mock data if no context
-      this._setupMockCollaborators();
     }
     
     this._renderCollaborators();
   }
 
+  /**
+   * Connect to the document's awareness system to track collaborators.
+   * 
+   * @param context - The document context
+   */
   private _connectToAwareness(context: DocumentRegistry.IContext<any>): void {
     // Wait for the context to be ready
     context.ready.then(() => {
@@ -104,15 +132,21 @@ class DocumentCollaboratorsWidget extends Widget {
         }
       }
     }).catch(() => {
-      this._setupMockCollaborators();
+      // Context failed to load, no collaborators available
     });
   }
 
+  /**
+   * Handle changes in collaborator awareness state.
+   */
   private _onAwarenessChange(): void {
     this._updateCollaboratorsFromAwareness();
     this._renderCollaborators();
   }
 
+  /**
+   * Update the internal collaborator list from awareness state.
+   */
   private _updateCollaboratorsFromAwareness(): void {
     if (!this._awareness) {
       return;
@@ -129,10 +163,24 @@ class DocumentCollaboratorsWidget extends Widget {
       
       // Extract user information from awareness state
       const user = state.user || {};
-      const name = user.name || user.displayName || `User ${clientId}`;
+      
+      // Only create collaborator if there's actual user data (name or displayName)
+      const name = user.name || user.displayName;
+      if (!name) {
+        return; // Skip if no valid user name
+      }
+      
       const email = user.email || '';
       const avatar_url = user.avatar_url || user.avatarUrl || '';
-      const color = user.color || generateUserColor(name);
+      
+      // Try to get cursor color from various possible locations in awareness state
+      let color = user.color || state.color || user.cursorColor || state.cursorColor;
+      
+      // Fallback to generated color if no cursor color found
+      if (!color) {
+        color = generateUserColor(name);
+      }
+      
       const initials = generateInitials(name);
       
       currentCollaborators.set(clientId, {
@@ -148,44 +196,24 @@ class DocumentCollaboratorsWidget extends Widget {
     this._collaborators = currentCollaborators;
   }
 
-  private _setupMockCollaborators(): void {
-    // Fallback mock data for testing/demo purposes
-    const mockCollaborators: ICollaborator[] = [
-      {
-        name: 'Sarah Chen',
-        initials: 'SC',
-        email: 'sarah.chen@example.com',
-        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah',
-        color: '#4CAF50',
-        clientId: 1
-      },
-      {
-        name: 'John Doe',
-        initials: 'JD',
-        email: 'john.doe@example.com',
-        color: '#2196F3',
-        clientId: 2
-      },
-      {
-        name: 'Alice Smith',
-        initials: 'AS',
-        email: 'alice.smith@example.com',
-        avatar_url: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alice',
-        color: '#FF9800',
-        clientId: 3
-      }
-    ];
-    
-    this._collaborators.clear();
-    mockCollaborators.forEach(collaborator => {
-      this._collaborators.set(collaborator.clientId, collaborator);
-    });
-  }
 
+  /**
+   * Render the collaborator avatars in the widget.
+   */
   private _renderCollaborators(): void {
     this.node.innerHTML = '';
     
     const collaborators = Array.from(this._collaborators.values());
+    
+    // Hide the widget completely if there are no collaborators
+    if (collaborators.length === 0) {
+      this.hide();
+      return;
+    }
+    
+    // Show the widget if there are collaborators
+    this.show();
+    
     const visibleCollaborators = collaborators.slice(0, this._maxVisibleCollaborators);
     const remainingCount = Math.max(0, collaborators.length - this._maxVisibleCollaborators);
     
@@ -202,19 +230,26 @@ class DocumentCollaboratorsWidget extends Widget {
     }
     
     // Update tooltip
-    if (collaborators.length > 0) {
-      const names = collaborators.map(c => c.name).join(', ');
-      this.node.title = `Collaborators: ${names}`;
-      this.removeClass('empty');
-    } else {
-      this.node.title = 'No active collaborators';
-      this.addClass('empty');
-    }
+    const names = collaborators.map(c => c.name).join(', ');
+    this.node.title = `Collaborators: ${names}`;
   }
 
+  /**
+   * Create a user icon element for a collaborator.
+   * 
+   * @param collaborator - The collaborator data
+   * @param index - The position index for styling
+   * @returns The created DOM element
+   */
   private _createUserIcon(collaborator: ICollaborator, index: number): HTMLDivElement {
     const userIcon = document.createElement('div');
     userIcon.className = `jp-DocumentCollaborators-userIcon position-${index}`;
+    
+    // Add border ring that matches cursor color - always show as active
+    userIcon.style.setProperty('border', `2px solid ${collaborator.color}`, 'important');
+    userIcon.style.setProperty('border-radius', '50%', 'important');
+    userIcon.style.setProperty('box-sizing', 'border-box', 'important');
+    userIcon.style.setProperty('opacity', '1', 'important');
     
     if (collaborator.avatar_url) {
       // Use avatar image
@@ -262,6 +297,13 @@ class DocumentCollaboratorsWidget extends Widget {
     return userIcon;
   }
 
+  /**
+   * Create a '+N more' icon for overflow collaborators.
+   * 
+   * @param remainingCount - Number of additional collaborators
+   * @param index - The position index for styling
+   * @returns The created DOM element
+   */
   private _createMoreIcon(remainingCount: number, index: number): HTMLDivElement {
     const moreIcon = document.createElement('div');
     moreIcon.className = `jp-DocumentCollaborators-userIcon jp-DocumentCollaborators-moreIcon position-${index}`;
@@ -287,6 +329,12 @@ class DocumentCollaboratorsWidget extends Widget {
     return moreIcon;
   }
 
+  /**
+   * Show a modal with detailed collaborator information.
+   * 
+   * @param collaborator - The collaborator data
+   * @param targetElement - The element to position the modal relative to
+   */
   private _showCollaboratorModal(collaborator: ICollaborator, targetElement: HTMLElement): void {
     this._clearHideModalTimeout();
     this._hideCurrentModal();
@@ -375,6 +423,11 @@ class DocumentCollaboratorsWidget extends Widget {
     this._positionAndShowModal(modal, targetElement);
   }
   
+  /**
+   * Show a modal with the list of additional collaborators.
+   * 
+   * @param targetElement - The element to position the modal relative to
+   */
   private _showMoreModal(targetElement: HTMLElement): void {
     this._clearHideModalTimeout();
     this._hideCurrentModal();
@@ -429,6 +482,12 @@ class DocumentCollaboratorsWidget extends Widget {
     this._positionAndShowModal(modal, targetElement);
   }
   
+  /**
+   * Position and display a modal relative to a target element.
+   * 
+   * @param modal - The modal element to show
+   * @param targetElement - The element to position the modal relative to
+   */
   private _positionAndShowModal(modal: HTMLDivElement, targetElement: HTMLElement): void {
     // Add modal to document body
     document.body.appendChild(modal);
@@ -460,6 +519,9 @@ class DocumentCollaboratorsWidget extends Widget {
     });
   }
   
+  /**
+   * Schedule hiding the current modal after a delay.
+   */
   private _scheduleHideModal(): void {
     this._clearHideModalTimeout();
     this._hideModalTimeout = setTimeout(() => {
@@ -467,6 +529,9 @@ class DocumentCollaboratorsWidget extends Widget {
     }, 200); // Small delay to allow moving to modal
   }
   
+  /**
+   * Clear any scheduled modal hide timeout.
+   */
   private _clearHideModalTimeout(): void {
     if (this._hideModalTimeout) {
       clearTimeout(this._hideModalTimeout);
@@ -474,6 +539,9 @@ class DocumentCollaboratorsWidget extends Widget {
     }
   }
   
+  /**
+   * Hide the currently displayed modal.
+   */
   private _hideCurrentModal(): void {
     if (this._currentModal) {
       this._currentModal.classList.remove('jp-DocumentCollaborators-modal-visible');
@@ -501,10 +569,16 @@ class DocumentCollaboratorsWidget extends Widget {
 
 /**
  * A widget extension that adds a collaborators widget to document toolbars.
+ * This extension is responsible for creating and managing collaborator widgets
+ * for different document types in JupyterLab.
  */
 class CollaboratorsExtension implements DocumentRegistry.IWidgetExtension<any, any> {
   /**
-   * Create a new extension for the document widget.
+   * Create a new extension instance for a document widget.
+   * 
+   * @param panel - The document panel
+   * @param context - The document context
+   * @returns A disposable object for cleanup
    */
   createNew(
     panel: any,
@@ -526,7 +600,8 @@ class CollaboratorsExtension implements DocumentRegistry.IWidgetExtension<any, a
 }
 
 /**
- * Initialization data for the jupyterlab-document-collaborators extension.
+ * Main plugin for the jupyterlab-document-collaborators extension.
+ * Registers the collaborators widget with JupyterLab's document registry.
  */
 const collaboratorsPlugin: JupyterFrontEndPlugin<void> = {
   id: 'jupyterlab-document-collaborators:plugin',
@@ -534,6 +609,7 @@ const collaboratorsPlugin: JupyterFrontEndPlugin<void> = {
   autoStart: true,
   requires: [IDocumentManager],
   activate: (app: JupyterFrontEnd, docManager: IDocumentManager) => {
+    console.log('JupyterLab Document Collaborators extension is activated!');
     // Create the extension
     const extension = new CollaboratorsExtension();
     
