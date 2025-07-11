@@ -11,11 +11,7 @@ import { IDisposable } from '@lumino/disposable';
 
 import { Awareness } from 'y-protocols/awareness';
 
-import {
-  Extension,
-  Facet,
-  StateEffect
-} from '@codemirror/state';
+import { Extension, Facet, StateEffect } from '@codemirror/state';
 
 import {
   EditorView,
@@ -134,7 +130,6 @@ const persistentLabelTheme = EditorView.baseTheme({
   }
 });
 
-
 /**
  * CodeMirror ViewPlugin for managing persistent user labels at cursor positions.
  * Handles the creation, positioning, and cleanup of label elements.
@@ -158,7 +153,7 @@ const persistentUserLabels = ViewPlugin.fromClass(
 
     /**
      * Initialize the plugin with editor view
-     * 
+     *
      * @param view - The CodeMirror editor view
      */
     constructor(view: EditorView) {
@@ -166,7 +161,7 @@ const persistentUserLabels = ViewPlugin.fromClass(
         this.editorAwareness = view.state.facet(editorAwarenessFacet);
         this.decorations = Decoration.set([]);
         this.updateOverlayLabels(view);
-        
+
         this._listener = ({ added, updated, removed }) => {
           const clients = added.concat(updated).concat(removed);
           if (
@@ -191,26 +186,25 @@ const persistentUserLabels = ViewPlugin.fromClass(
      */
     destroy(): void {
       this.editorAwareness.awareness.off('change', this._listener);
-      
+
       // Clear all hide timers
-      this.hideTimers.forEach((timer) => {
+      this.hideTimers.forEach(timer => {
         clearTimeout(timer);
       });
       this.hideTimers.clear();
-      
+
       // Clean up all labels attached to document.body
-      this.labelElements.forEach((label) => {
+      this.labelElements.forEach(label => {
         if (label.parentNode) {
           label.parentNode.removeChild(label);
         }
       });
       this.labelElements.clear();
-      
     }
 
     /**
      * Handle editor updates and refresh labels as needed
-     * 
+     *
      * @param update - The view update information
      */
     update(update: ViewUpdate): void {
@@ -229,11 +223,10 @@ const persistentUserLabels = ViewPlugin.fromClass(
     /**
      * Update the overlay labels based on current awareness state.
      * This is the main function that creates and positions labels.
-     * 
+     *
      * @param view - The CodeMirror editor view
      */
     updateOverlayLabels(view: EditorView): void {
-      
       const { awareness, ytext } = this.editorAwareness;
       const ydoc = ytext.doc!;
       const activeUsers = new Set<string>();
@@ -253,34 +246,38 @@ const persistentUserLabels = ViewPlugin.fromClass(
         activeUsers.add(userKey);
 
         for (const cursor of cursors_ ?? []) {
-          if (!cursor?.head) continue;
+          if (!cursor?.head) {
+            continue;
+          }
 
-          let head = createAbsolutePositionFromRelativePosition(
+          const head = createAbsolutePositionFromRelativePosition(
             cursor.head,
             ydoc
           );
-          
+
           // Only create label if cursor belongs to this cell's ytext
-          if (!head || head.type !== ytext) continue;
+          if (!head || head.type !== ytext) {
+            continue;
+          }
 
           // Get the current document state
           const docLength = view.state.doc.length;
           let position = head.index;
-          
+
           // Basic bounds checking
           if (position < 0) {
             position = 0;
           } else if (position > docLength) {
             position = docLength;
           }
-          
+
           try {
             const coords = view.coordsAtPos(position);
-            
+
             if (!coords) {
               continue;
             }
-            
+
             // Get or create label element
             let label = this.labelElements.get(userKey);
             if (!label) {
@@ -289,20 +286,20 @@ const persistentUserLabels = ViewPlugin.fromClass(
               // Append to document body for fixed positioning to work above everything
               document.body.appendChild(label);
             }
-            
+
             // Use fixed positioning relative to viewport to hover above everything
             label.style.position = 'fixed';
             label.style.left = `${coords.left}px`;
             label.style.top = `${coords.top - 12}px`; // 12px above cursor
             label.style.visibility = 'visible';
             label.style.opacity = '0.9';
-            
+
             // Clear any existing hide timer for this user
             const existingTimer = this.hideTimers.get(userKey);
             if (existingTimer) {
               clearTimeout(existingTimer);
             }
-            
+
             // Set a new timer to hide the label after inactivity
             const hideTimer = window.setTimeout(() => {
               const currentLabel = this.labelElements.get(userKey);
@@ -312,9 +309,8 @@ const persistentUserLabels = ViewPlugin.fromClass(
               }
               this.hideTimers.delete(userKey);
             }, 500);
-            
+
             this.hideTimers.set(userKey, hideTimer);
-            
           } catch (error) {
             // Silently continue if position can't be resolved
           }
@@ -330,7 +326,7 @@ const persistentUserLabels = ViewPlugin.fromClass(
             clearTimeout(timer);
             this.hideTimers.delete(userKey);
           }
-          
+
           // Remove the label
           if (label.parentNode) {
             label.parentNode.removeChild(label);
@@ -342,32 +338,34 @@ const persistentUserLabels = ViewPlugin.fromClass(
 
     /**
      * Create a DOM element for displaying a user's name label.
-     * 
+     *
      * @param userName - The user's display name
      * @param userColor - The user's associated color
      * @param avatarUrl - Optional avatar URL (currently unused)
      * @returns The created label element
      */
-    createLabelElement(userName: string, userColor: string, avatarUrl?: string): HTMLElement {
+    createLabelElement(
+      userName: string,
+      userColor: string,
+      avatarUrl?: string
+    ): HTMLElement {
       const wrap = document.createElement('div');
       wrap.className = 'jp-PersistentCursorLabel';
-      
+
       const content = document.createElement('div');
       content.className = 'jp-PersistentCursorLabel-content';
       content.style.backgroundColor = userColor;
-      
+
       // Add name only (no icon/initials)
       const nameElement = document.createElement('div');
       nameElement.className = 'jp-PersistentCursorLabel-name';
       nameElement.textContent = userName;
       content.appendChild(nameElement);
-      
+
       wrap.appendChild(content);
-      
+
       return wrap;
     }
-
-
   },
   {
     decorations: (v: any) => v.decorations,
@@ -377,7 +375,7 @@ const persistentUserLabels = ViewPlugin.fromClass(
 
 /**
  * Create a CodeMirror extension for displaying persistent user cursor labels.
- * 
+ *
  * @param config - Editor source and awareness configuration
  * @returns CodeMirror extension array
  */
@@ -389,22 +387,24 @@ export function persistentUserCursorLabels(config: EditorAwareness): Extension {
  * Widget extension for adding persistent cursor labels to different document types.
  * Handles the integration with JupyterLab's document system.
  */
-class PersistentCursorLabelsExtension implements DocumentRegistry.IWidgetExtension<any, any> {
+class PersistentCursorLabelsExtension
+  implements DocumentRegistry.IWidgetExtension<any, any>
+{
   /**
    * Create a new extension instance for a document widget.
-   * 
+   *
    * @param panel - The document panel
    * @param context - The document context
    * @returns A disposable object for cleanup
    */
   createNew(
-    panel: any,
+    panel: any, // TODO: Type this more specifically when JupyterLab types are available
     context: DocumentRegistry.IContext<any>
   ): IDisposable {
     this._addLabelsToEditor(panel, context);
-    
+
     return {
-      dispose: () => {
+      dispose: (): void => {
         // Cleanup handled by CodeMirror extension
       },
       isDisposed: false
@@ -413,24 +413,34 @@ class PersistentCursorLabelsExtension implements DocumentRegistry.IWidgetExtensi
 
   /**
    * Add cursor labels to the editor after the context is ready.
-   * 
+   *
    * @param panel - The document panel
    * @param context - The document context
    */
-  private async _addLabelsToEditor(panel: any, context: DocumentRegistry.IContext<any>): Promise<void> {
+  private async _addLabelsToEditor(
+    panel: any,
+    context: DocumentRegistry.IContext<any>
+  ): Promise<void> {
     try {
       await context.ready;
-      
+
       if (context.model && 'sharedModel' in context.model) {
         const sharedModel = (context.model as any).sharedModel;
-        
+
         // Check various possible property names
-        const awareness = sharedModel.awareness || sharedModel._awareness || sharedModel.doc?.awareness;
-        
+        const awareness =
+          sharedModel.awareness ||
+          sharedModel._awareness ||
+          sharedModel.doc?.awareness;
+
         if (awareness) {
           // Wait a bit for the editor to be fully initialized
           setTimeout(() => {
-            this._findAndEnhanceEditorWithAwareness(panel, awareness, sharedModel);
+            this._findAndEnhanceEditorWithAwareness(
+              panel,
+              awareness,
+              sharedModel
+            );
           }, 500);
         }
       }
@@ -441,24 +451,34 @@ class PersistentCursorLabelsExtension implements DocumentRegistry.IWidgetExtensi
 
   /**
    * Find editors in the panel and enhance them with awareness-based cursor labels.
-   * 
+   *
    * @param panel - The document panel
    * @param awareness - The Yjs awareness instance
    * @param sharedModel - The shared document model
    */
-  private _findAndEnhanceEditorWithAwareness(panel: any, awareness: Awareness, sharedModel: any): void {
+  private _findAndEnhanceEditorWithAwareness(
+    panel: any, // TODO: Type this more specifically
+    awareness: Awareness,
+    sharedModel: any // TODO: Type this more specifically
+  ): void {
     // For file editors
     if (panel.content && panel.content.editor && panel.content.editor.editor) {
       const cmEditor = panel.content.editor.editor;
-      
+
       // For file editors, try to get the ytext from shared model
-      const ytext = sharedModel.ytext || sharedModel._ytext || sharedModel.ysource || sharedModel.source;
-      
+      const ytext =
+        sharedModel.ytext ||
+        sharedModel._ytext ||
+        sharedModel.ysource ||
+        sharedModel.source;
+
       if (cmEditor.dispatch && ytext) {
         try {
           cmEditor.dispatch({
             effects: [
-              StateEffect.appendConfig.of(persistentUserCursorLabels({ awareness, ytext }))
+              StateEffect.appendConfig.of(
+                persistentUserCursorLabels({ awareness, ytext })
+              )
             ]
           });
         } catch (error) {
@@ -466,25 +486,28 @@ class PersistentCursorLabelsExtension implements DocumentRegistry.IWidgetExtensi
         }
       }
     }
-    
+
     // For notebook cells
     if (panel.content && panel.content.widgets) {
       panel.content.widgets.forEach((cell: any) => {
         if (cell.editor && cell.editor.editor && cell.editor.editor.dispatch) {
           const cmEditor = cell.editor.editor;
-          
+
           // For notebook cells, we need to get the cell's individual ytext
           let cellYtext = null;
-          
+
           if (cell.model && cell.model.sharedModel) {
-            cellYtext = cell.model.sharedModel.ysource || cell.model.sharedModel.ytext;
+            cellYtext =
+              cell.model.sharedModel.ysource || cell.model.sharedModel.ytext;
           }
-          
+
           if (cellYtext) {
             try {
               cmEditor.dispatch({
                 effects: [
-                  StateEffect.appendConfig.of(persistentUserCursorLabels({ awareness, ytext: cellYtext }))
+                  StateEffect.appendConfig.of(
+                    persistentUserCursorLabels({ awareness, ytext: cellYtext })
+                  )
                 ]
               });
             } catch (error) {
@@ -493,24 +516,35 @@ class PersistentCursorLabelsExtension implements DocumentRegistry.IWidgetExtensi
           }
         }
       });
-      
+
       // Listen for new cells
       panel.content.model?.cells.changed.connect(() => {
         setTimeout(() => {
           panel.content.widgets.forEach((cell: any) => {
-            if (cell.editor && cell.editor.editor && cell.editor.editor.dispatch) {
+            if (
+              cell.editor &&
+              cell.editor.editor &&
+              cell.editor.editor.dispatch
+            ) {
               const cmEditor = cell.editor.editor;
-              
+
               let cellYtext = null;
               if (cell.model && cell.model.sharedModel) {
-                cellYtext = cell.model.sharedModel.ysource || cell.model.sharedModel.ytext;
+                cellYtext =
+                  cell.model.sharedModel.ysource ||
+                  cell.model.sharedModel.ytext;
               }
-              
+
               if (cellYtext) {
                 try {
                   cmEditor.dispatch({
                     effects: [
-                      StateEffect.appendConfig.of(persistentUserCursorLabels({ awareness, ytext: cellYtext }))
+                      StateEffect.appendConfig.of(
+                        persistentUserCursorLabels({
+                          awareness,
+                          ytext: cellYtext
+                        })
+                      )
                     ]
                   });
                 } catch (error) {
@@ -531,14 +565,15 @@ class PersistentCursorLabelsExtension implements DocumentRegistry.IWidgetExtensi
  */
 const persistentCursorLabelsPlugin: JupyterFrontEndPlugin<void> = {
   id: 'jupyterlab-document-collaborators:persistent-cursor-labels',
-  description: 'A JupyterLab extension for showing persistent collaborator names above their cursors',
+  description:
+    'A JupyterLab extension for showing persistent collaborator names above their cursors',
   autoStart: true,
   requires: [IDocumentManager],
   activate: (app: JupyterFrontEnd, docManager: IDocumentManager) => {
     console.log('Persistent cursor labels extension is activated!');
     // Create the extension
     const extension = new PersistentCursorLabelsExtension();
-    
+
     // Register the extension with the document registry for different document types
     app.docRegistry.addWidgetExtension('Notebook', extension);
     app.docRegistry.addWidgetExtension('Editor', extension);
