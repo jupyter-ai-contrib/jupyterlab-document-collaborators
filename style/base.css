@@ -361,3 +361,175 @@
     transition: none !important;
   }
 }
+
+/* Cell Awareness Indicator Styles */
+.jp-CellAwareness-indicator {
+  --cell-avatar-size: 18px;
+  --cell-avatar-overlap: 12px;
+
+  /* Positioning */
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 1000;
+
+  /* Layout */
+  display: flex;
+  align-items: center;
+  gap: 2px;
+
+  /* Appearance */
+  background-color: var(--jp-layout-color0);
+  border: 1px solid var(--jp-border-color2);
+  border-radius: 12px;
+  padding: 4px 6px;
+  box-shadow: 0 2px 6px rgb(0 0 0 / 15%);
+
+  /* Animation */
+  opacity: 0;
+  transform: translateY(4px);
+  transition: all 0.2s ease;
+  animation: slide-in-up 0.3s ease forwards;
+
+  /* Prevent text selection */
+  user-select: none;
+  pointer-events: none;
+}
+
+@keyframes slide-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Cell awareness avatar styles */
+.jp-CellAwareness-avatar {
+  /* Sizing */
+  width: var(--cell-avatar-size);
+  height: var(--cell-avatar-size);
+  min-width: var(--cell-avatar-size);
+  min-height: var(--cell-avatar-size);
+  box-sizing: border-box;
+
+  /* Shape and appearance */
+  border-radius: 50%;
+  border: none;
+  background-color: transparent;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  flex-shrink: 0;
+  overflow: hidden;
+
+  /* Typography for initials */
+  font-size: 8px;
+  font-weight: 700;
+  color: var(--avatar-color, #2196f3);
+  line-height: 1;
+  font-family: var(--jp-ui-font-family);
+  text-shadow: none;
+
+  /* Overlapping effect */
+  margin-left: calc(-1 * var(--avatar-index, 0) * var(--cell-avatar-overlap));
+  z-index: calc(10 - var(--avatar-index, 0));
+
+  /* Subtle animation */
+  animation: avatar-pop 0.2s ease calc(var(--avatar-index, 0) * 0.05s);
+}
+
+@keyframes avatar-pop {
+  0% {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+
+  50% {
+    transform: scale(1.1);
+  }
+
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Avatar image styling */
+.jp-CellAwareness-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+/* Avatar with initials styling */
+.jp-CellAwareness-avatar-initials {
+  /* No additional background - use the ring style */
+}
+
+/* Overflow indicator styling */
+.jp-CellAwareness-overflow {
+  background-color: #757575 !important;
+  color: white;
+  font-size: 7px;
+  font-weight: 700;
+  border-color: white;
+}
+
+/* Dark theme adjustments for cell awareness */
+[data-jp-theme-name='JupyterLab Dark'] .jp-CellAwareness-indicator {
+  background-color: var(--jp-layout-color1);
+  border-color: var(--jp-border-color1);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 30%);
+}
+
+[data-jp-theme-name='JupyterLab Dark'] .jp-CellAwareness-avatar {
+  /* No special styling needed for dark theme since background is transparent */
+}
+
+/* High contrast mode support for cell awareness */
+@media (prefers-contrast: high) {
+  .jp-CellAwareness-indicator {
+    border-width: 2px;
+    box-shadow: 0 2px 8px rgb(0 0 0 / 40%);
+  }
+
+  .jp-CellAwareness-avatar {
+    /* No border adjustments needed since avatars are borderless */
+  }
+}
+
+/* Reduced motion support for cell awareness */
+@media (prefers-reduced-motion: reduce) {
+  .jp-CellAwareness-indicator {
+    animation: none !important;
+    transition: none !important;
+  }
+
+  .jp-CellAwareness-avatar {
+    animation: none !important;
+  }
+
+  @keyframes slide-in-up {
+    from,
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes avatar-pop {
+    from,
+    to {
+      transform: scale(1);
+      opacity: 1;
+    }
+  }
+}

@@ -16,6 +16,7 @@ import { Awareness } from 'y-protocols/awareness';
 import { Toolbar } from '@jupyterlab/ui-components';
 
 import cursorLabelsPlugin from './cursor-labels';
+import cellAwarenessPlugin from './cell-awareness';
 
 /**
  * Interface representing a document collaborator
@@ -159,8 +160,37 @@ class DocumentCollaboratorsWidget extends Widget {
    * Handle changes in collaborator awareness state.
    */
   private _onAwarenessChange(): void {
-    this._updateCollaboratorsFromAwareness();
-    this._renderCollaborators();
+    // Only update if the set of active users has changed (join/leave)
+    // not on every cursor movement or typing
+    const currentUserIds = new Set(this._collaborators.keys());
+    const newUserIds = new Set<number>();
+
+    if (this._awareness) {
+      this._awareness.getStates().forEach((state: any, clientId: number) => {
+        // Skip our own client
+        if (clientId === this._awareness!.clientID) {
+          return;
+        }
+
+        // Only track users who have valid names
+        const user = state.user || {};
+        const name = user.name || user.displayName;
+        if (name) {
+          newUserIds.add(clientId);
+        }
+      });
+    }
+
+    // Check if the set of users has changed
+    const usersChanged =
+      currentUserIds.size !== newUserIds.size ||
+      [...currentUserIds].some(id => !newUserIds.has(id)) ||
+      [...newUserIds].some(id => !currentUserIds.has(id));
+
+    if (usersChanged) {
+      this._updateCollaboratorsFromAwareness();
+      this._renderCollaborators();
+    }
   }
 
   /**
@@ -679,11 +709,12 @@ const collaboratorsPlugin: JupyterFrontEndPlugin<void> = {
 };
 
 /**
- * Export both plugins as an array
+ * Export all plugins as an array
  */
 const plugins: JupyterFrontEndPlugin<any>[] = [
   collaboratorsPlugin,
-  cursorLabelsPlugin
+  cursorLabelsPlugin,
+  cellAwarenessPlugin
 ];
 
 export default plugins;
